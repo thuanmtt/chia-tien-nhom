@@ -6,6 +6,7 @@
     <title>Chia Tiền Nhóm</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://avatars.githubusercontent.com/u/86670683">
     <style>
         body {
             background-color: #f8f9fa;
@@ -268,9 +269,12 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     $(document).ready(function () {
-        let currentEventId = 'event_' + Date.now();
+        let currentEventId = localStorage.getItem('currentEventId') || 'event_' + Date.now();
         let members = [];
         let expenses = [];
+
+        // Khởi tạo - Tải dữ liệu gần nhất nếu có
+        loadLatestEvent();
 
         // Format số tiền thành định dạng VND
         function formatCurrency(amount) {
@@ -278,8 +282,8 @@
         }
 
         // Hàm lưu dữ liệu vào localStorage
-        function saveEvent() {
-            if (members.length === 0) {
+        function saveEvent(showAlert = true) {
+            if (members.length === 0 && showAlert) {
                 alert('Vui lòng thêm ít nhất một thành viên trước khi lưu!');
                 return;
             }
@@ -289,14 +293,20 @@
                 title: $('#eventTitle').text(),
                 members: members,
                 expenses: expenses,
-                createdAt: Date.now()
+                createdAt: Date.now(),
+                lastUpdated: Date.now()
             };
 
             let savedEvents = JSON.parse(localStorage.getItem('billSplitEvents')) || {};
             savedEvents[currentEventId] = eventData;
             localStorage.setItem('billSplitEvents', JSON.stringify(savedEvents));
 
-            alert('Sự kiện đã được lưu thành công!');
+            // Lưu ID sự kiện hiện tại để tải lại khi refresh
+            localStorage.setItem('currentEventId', currentEventId);
+
+            if (showAlert) {
+                alert('Sự kiện đã được lưu thành công!');
+            }
         }
 
         // Hàm tải sự kiện từ localStorage
@@ -310,15 +320,68 @@
                 $('#eventTitle').text(eventData.title);
 
                 // Cập nhật thành viên
-                members = eventData.members;
+                members = eventData.members || [];
                 renderMembers();
 
                 // Cập nhật chi phí
-                expenses = eventData.expenses;
+                expenses = eventData.expenses || [];
                 renderExpenses();
 
-                // Đóng modal
+                // Đóng modal nếu đang mở
                 $('#savedEventsModal').modal('hide');
+
+                // Lưu ID sự kiện hiện tại
+                localStorage.setItem('currentEventId', currentEventId);
+            }
+        }
+
+        // Hàm xoá sự kiện
+        function deleteEvent(eventId) {
+            let savedEvents = JSON.parse(localStorage.getItem('billSplitEvents')) || {};
+            if (savedEvents[eventId]) {
+                if (confirm(`Bạn có chắc chắn muốn xoá sự kiện "${savedEvents[eventId].title}"?`)) {
+                    delete savedEvents[eventId];
+                    localStorage.setItem('billSplitEvents', JSON.stringify(savedEvents));
+
+                    // Nếu đang xoá sự kiện hiện tại, tạo mới
+                    if (eventId === currentEventId) {
+                        currentEventId = 'event_' + Date.now();
+                        $('#eventTitle').text('Sự Kiện Mới');
+                        members = [];
+                        expenses = [];
+                        renderMembers();
+                        renderExpenses();
+                        $('#resultContainer').hide();
+                        localStorage.setItem('currentEventId', currentEventId);
+                    }
+
+                    // Cập nhật danh sách sự kiện
+                    renderSavedEvents();
+
+                    alert('Đã xoá sự kiện thành công!');
+                }
+            }
+        }
+
+        // Hàm tải sự kiện gần nhất (dùng khi refresh trang)
+        function loadLatestEvent() {
+            const lastEventId = localStorage.getItem('currentEventId');
+            if (lastEventId) {
+                let savedEvents = JSON.parse(localStorage.getItem('billSplitEvents')) || {};
+                if (savedEvents[lastEventId]) {
+                    loadEvent(lastEventId);
+                } else {
+                    // Nếu không tìm thấy sự kiện, khởi tạo mới
+                    currentEventId = 'event_' + Date.now();
+                    members = [];
+                    expenses = [];
+                    localStorage.setItem('currentEventId', currentEventId);
+                    renderMembers();
+                    renderExpenses();
+                }
+            } else {
+                renderMembers();
+                renderExpenses();
             }
         }
 
@@ -330,11 +393,11 @@
 
             members.forEach(function (member, index) {
                 $('#membersList').append(`
-                        <div class="member-pill">
-                            ${member}
-                            <span class="member-close" data-index="${index}"><i class="fas fa-times"></i></span>
-                        </div>
-                    `);
+                <div class="member-pill">
+                    ${member}
+                    <span class="member-close" data-index="${index}"><i class="fas fa-times"></i></span>
+                </div>
+            `);
 
                 $('#expensePayer').append(`<option value="${member}">${member}</option>`);
             });
@@ -351,22 +414,22 @@
 
             expenses.forEach(function (expense, index) {
                 $('#expensesList').append(`
-                        <div class="expense-item p-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">${expense.title}</h6>
-                                    <p class="mb-0 text-muted">
-                                        <small>${expense.payer} đã thanh toán ${formatCurrency(expense.amount)}</small>
-                                    </p>
-                                </div>
-                                <div>
-                                    <span class="action-btn delete-expense" data-index="${index}">
-                                        <i class="fas fa-trash"></i>
-                                    </span>
-                                </div>
-                            </div>
+                <div class="expense-item p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${expense.title}</h6>
+                            <p class="mb-0 text-muted">
+                                <small>${expense.payer} đã thanh toán ${formatCurrency(expense.amount)}</small>
+                            </p>
                         </div>
-                    `);
+                        <div>
+                            <span class="action-btn delete-expense" data-index="${index}">
+                                <i class="fas fa-trash"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `);
             });
         }
 
@@ -380,23 +443,32 @@
                 return;
             }
 
-            // Sắp xếp sự kiện theo thời gian tạo, mới nhất đầu tiên
-            const sortedEvents = Object.values(savedEvents).sort((a, b) => b.createdAt - a.createdAt);
+            // Sắp xếp sự kiện theo thời gian cập nhật, mới nhất đầu tiên
+            const sortedEvents = Object.values(savedEvents).sort((a, b) =>
+                (b.lastUpdated || b.createdAt) - (a.lastUpdated || a.createdAt)
+            );
 
             sortedEvents.forEach(function (event) {
                 const totalExpense = event.expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
-                const date = new Date(event.createdAt).toLocaleDateString('vi-VN');
+                const date = new Date(event.lastUpdated || event.createdAt).toLocaleDateString('vi-VN');
 
                 $('#savedEventsList').append(`
-                        <div class="list-group-item list-group-item-action event-item" data-event-id="${event.id}">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h5 class="mb-1">${event.title}</h5>
-                                <small class="text-muted">${date}</small>
-                            </div>
-                            <p class="mb-1">Số thành viên: ${event.members.length}</p>
+                <div class="list-group-item list-group-item-action event-item" data-event-id="${event.id}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">${event.title}</h5>
+                        <small class="text-muted">${date}</small>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1">Số thành viên: ${event.members ? event.members.length : 0}</p>
                             <p class="mb-1">Tổng chi phí: ${formatCurrency(totalExpense)}</p>
                         </div>
-                    `);
+                        <button class="btn btn-sm btn-danger delete-event-btn" data-event-id="${event.id}">
+                            <i class="fas fa-trash me-1"></i> Xoá
+                        </button>
+                    </div>
+                </div>
+            `);
             });
         }
 
@@ -438,15 +510,15 @@
                     .reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
 
                 $('#summaryTableBody').append(`
-                        <tr>
-                            <td>${member}</td>
-                            <td class="text-end">${formatCurrency(paid)}</td>
-                            <td class="text-end">${formatCurrency(amountPerPerson)}</td>
-                            <td class="text-end ${balances[member] >= 0 ? 'text-success' : 'text-danger'}">
-                                ${formatCurrency(balances[member])}
-                            </td>
-                        </tr>
-                    `);
+                <tr>
+                    <td>${member}</td>
+                    <td class="text-end">${formatCurrency(paid)}</td>
+                    <td class="text-end">${formatCurrency(amountPerPerson)}</td>
+                    <td class="text-end ${balances[member] >= 0 ? 'text-success' : 'text-danger'}">
+                        ${formatCurrency(balances[member])}
+                    </td>
+                </tr>
+            `);
             });
 
             // Tính toán các giao dịch chuyển tiền
@@ -501,16 +573,19 @@
             } else {
                 transfers.forEach(transfer => {
                     $('#transfersList').append(`
-                            <div class="transfer-item">
-                                <i class="fas fa-exchange-alt me-2"></i>
-                                <strong>${transfer.from}</strong> chuyển <strong>${formatCurrency(transfer.amount)}</strong> cho <strong>${transfer.to}</strong>
-                            </div>
-                        `);
+                    <div class="transfer-item">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        <strong>${transfer.from}</strong> chuyển <strong>${formatCurrency(transfer.amount)}</strong> cho <strong>${transfer.to}</strong>
+                    </div>
+                `);
                 });
             }
 
             // Hiển thị kết quả
             $('#resultContainer').show();
+
+            // Tự động lưu sau khi tính toán
+            saveEvent(false);
         }
 
         // Xử lý thêm thành viên
@@ -524,6 +599,9 @@
                     members.push(memberName);
                     renderMembers();
                     $('#memberName').val('');
+
+                    // Tự động lưu sau khi thêm thành viên
+                    saveEvent(false);
                 }
             } else {
                 alert('Vui lòng nhập tên thành viên!');
@@ -553,6 +631,9 @@
 
             members.splice(index, 1);
             renderMembers();
+
+            // Tự động lưu sau khi xóa thành viên
+            saveEvent(false);
         });
 
         // Xử lý thêm chi phí
@@ -588,6 +669,9 @@
             $('#expenseTitle').val('');
             $('#expenseAmount').val('');
             $('#expensePayer').val('');
+
+            // Tự động lưu sau khi thêm chi phí
+            saveEvent(false);
         });
 
         // Xử lý xóa chi phí
@@ -595,6 +679,9 @@
             const index = $(this).data('index');
             expenses.splice(index, 1);
             renderExpenses();
+
+            // Tự động lưu sau khi xóa chi phí
+            saveEvent(false);
         });
 
         // Xử lý tính toán chia tiền
@@ -602,9 +689,9 @@
             calculateSplit();
         });
 
-        // Xử lý lưu sự kiện
+        // Xử lý lưu sự kiện (hiện thông báo)
         $('#saveEventBtn').click(function () {
-            saveEvent();
+            saveEvent(true);
         });
 
         // Xử lý đổi tên sự kiện
@@ -613,6 +700,9 @@
             if (newTitle) {
                 $('#eventTitle').text(newTitle);
                 $('#editTitleModal').modal('hide');
+
+                // Tự động lưu sau khi đổi tên
+                saveEvent(false);
             } else {
                 alert('Vui lòng nhập tên sự kiện!');
             }
@@ -624,25 +714,38 @@
         });
 
         // Xử lý khi chọn sự kiện đã lưu
-        $(document).on('click', '.event-item', function () {
+        $(document).on('click', '.event-item', function (e) {
+            // Không chọn sự kiện nếu click vào nút xoá
+            if ($(e.target).hasClass('delete-event-btn') || $(e.target).closest('.delete-event-btn').length) {
+                return;
+            }
+
             const eventId = $(this).data('event-id');
             loadEvent(eventId);
         });
 
-        // Xử lý tạo sự kiện mới
-        $('#newEventBtn').click(function () {
-            currentEventId = 'event_' + Date.now();
-            $('#eventTitle').text('Sự Kiện Mới');
-            members = [];
-            expenses = [];
-            renderMembers();
-            renderExpenses();
-            $('#resultContainer').hide();
+        // Xử lý xoá sự kiện
+        $(document).on('click', '.delete-event-btn', function (e) {
+            e.stopPropagation(); // Ngăn không cho sự kiện propagate lên parent (event-item)
+            const eventId = $(this).data('event-id');
+            deleteEvent(eventId);
         });
 
-        // Khởi tạo
-        renderMembers();
-        renderExpenses();
+        // Xử lý tạo sự kiện mới
+        $('#newEventBtn').click(function () {
+            if (confirm('Bạn có chắc chắn muốn tạo sự kiện mới? Dữ liệu hiện tại đã được lưu.')) {
+                currentEventId = 'event_' + Date.now();
+                $('#eventTitle').text('Sự Kiện Mới');
+                members = [];
+                expenses = [];
+                renderMembers();
+                renderExpenses();
+                $('#resultContainer').hide();
+
+                // Lưu ID sự kiện mới
+                localStorage.setItem('currentEventId', currentEventId);
+            }
+        });
     });
 </script>
 </body>
