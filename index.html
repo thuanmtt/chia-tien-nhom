@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chia Tiền Nhóm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #6c757d;
+        }
+
+        .btn-primary {
+            background-color: #5c6bc0;
+            border-color: #5c6bc0;
+        }
+
+        .btn-primary:hover {
+            background-color: #4d5aa7;
+            border-color: #4d5aa7;
+        }
+
+        .member-pill {
+            border-radius: 20px;
+            padding: 5px 10px;
+            margin: 5px;
+            display: inline-block;
+            background-color: #e9ecef;
+        }
+
+        .member-close {
+            margin-left: 5px;
+            cursor: pointer;
+            color: #6c757d;
+        }
+
+        .expense-item {
+            border-left: 4px solid #5c6bc0;
+            padding-left: 10px;
+            margin-bottom: 10px;
+        }
+
+        .transfer-item {
+            background-color: #e9f7ef;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 5px;
+        }
+
+        .header-icon {
+            margin-right: 10px;
+            color: #5c6bc0;
+        }
+
+        .action-btn {
+            cursor: pointer;
+            color: #6c757d;
+            margin-left: 5px;
+        }
+
+        .action-btn:hover {
+            color: #5c6bc0;
+        }
+
+        .event-item {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .event-item:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="#">
+            <i class="fas fa-money-bill-wave me-2"></i>
+            Ứng Dụng Chia Tiền Nhóm
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" id="newEventBtn">
+                        <i class="fas fa-plus me-1"></i> Tạo Sự Kiện Mới
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="savedEventsBtn" data-bs-toggle="modal"
+                       data-bs-target="#savedEventsModal">
+                        <i class="fas fa-list me-1"></i> Sự Kiện Đã Lưu
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users header-icon"></i>
+                            <span id="eventTitle">Sự Kiện Mới</span>
+                        </h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2" id="saveEventBtn">
+                                <i class="fas fa-save me-1"></i> Lưu
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" id="editTitleBtn" data-bs-toggle="modal"
+                                    data-bs-target="#editTitleModal">
+                                <i class="fas fa-edit me-1"></i> Đổi Tên
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6 class="mb-3"><i class="fas fa-user-plus me-2"></i>Thành Viên</h6>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="memberName" placeholder="Tên thành viên...">
+                            <button class="btn btn-primary" id="addMemberBtn">Thêm</button>
+                        </div>
+                        <div id="membersList" class="d-flex flex-wrap"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-receipt header-icon"></i>Chi Phí</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="expenseTitle" class="form-label">Mục chi tiêu</label>
+                                <input type="text" class="form-control" id="expenseTitle"
+                                       placeholder="Ví dụ: Tiền ăn, tiền xe...">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="expenseAmount" class="form-label">Số tiền (VND)</label>
+                                <input type="number" class="form-control" id="expenseAmount"
+                                       placeholder="Nhập số tiền...">
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="expensePayer" class="form-label">Người thanh toán</label>
+                                <select class="form-select" id="expensePayer">
+                                    <option value="" selected disabled>Chọn người thanh toán...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <button class="btn btn-primary w-100" id="addExpenseBtn">Thêm Chi Phí</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="expenses-list mt-4">
+                        <h6 class="mb-3">Danh sách chi phí</h6>
+                        <div id="expensesList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-calculator header-icon"></i>Kết Quả Chia Tiền</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <button class="btn btn-primary w-100" id="calculateBtn">Tính Toán</button>
+                    </div>
+                    <div id="resultContainer" style="display: none;">
+                        <div class="summary mb-4">
+                            <h6>Tổng quan</h6>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="table-light">
+                                    <tr>
+                                        <th>Thành viên</th>
+                                        <th>Đã chi trả</th>
+                                        <th>Cần trả</th>
+                                        <th>Số dư</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="summaryTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="transfers">
+                            <h6>Các giao dịch cần thực hiện</h6>
+                            <div id="transfersList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Đổi Tên Sự Kiện -->
+<div class="modal fade" id="editTitleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Đổi Tên Sự Kiện</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="newEventTitle" class="form-label">Tên sự kiện mới</label>
+                    <input type="text" class="form-control" id="newEventTitle">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="saveNewTitleBtn">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sự Kiện Đã Lưu -->
+<div class="modal fade" id="savedEventsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sự Kiện Đã Lưu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="savedEventsList" class="list-group"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="bg-light py-3 mt-5">
+    <div class="container text-center">
+        <p class="text-muted mb-0">© 2025 Ứng Dụng Chia Tiền Nhóm</p>
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    $(document).ready(function () {
+        let currentEventId = 'event_' + Date.now();
+        let members = [];
+        let expenses = [];
+
+        // Format số tiền thành định dạng VND
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount) + ' VND';
+        }
+
+        // Hàm lưu dữ liệu vào localStorage
+        function saveEvent() {
+            if (members.length === 0) {
+                alert('Vui lòng thêm ít nhất một thành viên trước khi lưu!');
+                return;
+            }
+
+            const eventData = {
+                id: currentEventId,
+                title: $('#eventTitle').text(),
+                members: members,
+                expenses: expenses,
+                createdAt: Date.now()
+            };
+
+            let savedEvents = JSON.parse(localStorage.getItem('billSplitEvents')) || {};
+            savedEvents[currentEventId] = eventData;
+            localStorage.setItem('billSplitEvents', JSON.stringify(savedEvents));
+
+            alert('Sự kiện đã được lưu thành công!');
+        }
+
+        // Hàm tải sự kiện từ localStorage
+        function loadEvent(eventId) {
+            let savedEvents = JSON.parse(localStorage.getItem('billSplitEvents')) || {};
+            if (savedEvents[eventId]) {
+                currentEventId = eventId;
+                const eventData = savedEvents[eventId];
+
+                // Cập nhật tên sự kiện
+                $('#eventTitle').text(eventData.title);
+
+                // Cập nhật thành viên
+                members = eventData.members;
+                renderMembers();
+
+                // Cập nhật chi phí
+                expenses = eventData.expenses;
+                renderExpenses();
+
+                // Đóng modal
+                $('#savedEventsModal').modal('hide');
+            }
+        }
+
+        // Hàm hiển thị danh sách thành viên
+        function renderMembers() {
+            $('#membersList').empty();
+            $('#expensePayer').empty();
+            $('#expensePayer').append('<option value="" selected disabled>Chọn người thanh toán...</option>');
+
+            members.forEach(function (member, index) {
+                $('#membersList').append(`
+                        <div class="member-pill">
+                            ${member}
+                            <span class="member-close" data-index="${index}"><i class="fas fa-times"></i></span>
+                        </div>
+                    `);
+
+                $('#expensePayer').append(`<option value="${member}">${member}</option>`);
+            });
+        }
+
+        // Hàm hiển thị danh sách chi phí
+        function renderExpenses() {
+            $('#expensesList').empty();
+
+            if (expenses.length === 0) {
+                $('#expensesList').append('<p class="text-muted">Chưa có chi phí nào.</p>');
+                return;
+            }
+
+            expenses.forEach(function (expense, index) {
+                $('#expensesList').append(`
+                        <div class="expense-item p-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">${expense.title}</h6>
+                                    <p class="mb-0 text-muted">
+                                        <small>${expense.payer} đã thanh toán ${formatCurrency(expense.amount)}</small>
+                                    </p>
+                                </div>
+                                <div>
+                                    <span class="action-btn delete-expense" data-index="${index}">
+                                        <i class="fas fa-trash"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+            });
+        }
+
+        // Hàm hiển thị danh sách sự kiện đã lưu
+        function renderSavedEvents() {
+            const savedEvents = JSON.parse(localStorage.getItem('billSplitEvents')) || {};
+            $('#savedEventsList').empty();
+
+            if (Object.keys(savedEvents).length === 0) {
+                $('#savedEventsList').append('<p class="text-center text-muted">Chưa có sự kiện nào được lưu.</p>');
+                return;
+            }
+
+            // Sắp xếp sự kiện theo thời gian tạo, mới nhất đầu tiên
+            const sortedEvents = Object.values(savedEvents).sort((a, b) => b.createdAt - a.createdAt);
+
+            sortedEvents.forEach(function (event) {
+                const totalExpense = event.expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+                const date = new Date(event.createdAt).toLocaleDateString('vi-VN');
+
+                $('#savedEventsList').append(`
+                        <div class="list-group-item list-group-item-action event-item" data-event-id="${event.id}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">${event.title}</h5>
+                                <small class="text-muted">${date}</small>
+                            </div>
+                            <p class="mb-1">Số thành viên: ${event.members.length}</p>
+                            <p class="mb-1">Tổng chi phí: ${formatCurrency(totalExpense)}</p>
+                        </div>
+                    `);
+            });
+        }
+
+        // Thuật toán chia tiền
+        function calculateSplit() {
+            if (members.length === 0) {
+                alert('Vui lòng thêm ít nhất một thành viên!');
+                return;
+            }
+
+            if (expenses.length === 0) {
+                alert('Vui lòng thêm ít nhất một chi phí!');
+                return;
+            }
+
+            // Tính tổng chi phí và số tiền mỗi người phải trả
+            const totalExpense = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+            const amountPerPerson = totalExpense / members.length;
+
+            // Tính số dư của mỗi người
+            const balances = {};
+            members.forEach(member => {
+                balances[member] = 0;
+            });
+
+            expenses.forEach(expense => {
+                balances[expense.payer] += parseFloat(expense.amount);
+            });
+
+            members.forEach(member => {
+                balances[member] -= amountPerPerson;
+            });
+
+            // Hiển thị tổng quan
+            $('#summaryTableBody').empty();
+            members.forEach(member => {
+                const paid = expenses
+                    .filter(expense => expense.payer === member)
+                    .reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+
+                $('#summaryTableBody').append(`
+                        <tr>
+                            <td>${member}</td>
+                            <td class="text-end">${formatCurrency(paid)}</td>
+                            <td class="text-end">${formatCurrency(amountPerPerson)}</td>
+                            <td class="text-end ${balances[member] >= 0 ? 'text-success' : 'text-danger'}">
+                                ${formatCurrency(balances[member])}
+                            </td>
+                        </tr>
+                    `);
+            });
+
+            // Tính toán các giao dịch chuyển tiền
+            const creditors = []; // Những người đã trả nhiều hơn
+            const debtors = [];   // Những người trả ít hơn
+
+            for (let member in balances) {
+                if (balances[member] > 0) {
+                    creditors.push({name: member, amount: balances[member]});
+                } else if (balances[member] < 0) {
+                    debtors.push({name: member, amount: -balances[member]});
+                }
+            }
+
+            // Sắp xếp theo số tiền giảm dần
+            creditors.sort((a, b) => b.amount - a.amount);
+            debtors.sort((a, b) => b.amount - a.amount);
+
+            // Tính toán các giao dịch chuyển tiền
+            const transfers = [];
+            let i = 0, j = 0;
+
+            while (i < creditors.length && j < debtors.length) {
+                const creditor = creditors[i];
+                const debtor = debtors[j];
+
+                // Số tiền chuyển là giá trị nhỏ nhất giữa hai số dư
+                const transferAmount = Math.min(creditor.amount, debtor.amount);
+
+                if (transferAmount > 0) {
+                    transfers.push({
+                        from: debtor.name,
+                        to: creditor.name,
+                        amount: Math.round(transferAmount)
+                    });
+                }
+
+                // Cập nhật số dư
+                creditor.amount -= transferAmount;
+                debtor.amount -= transferAmount;
+
+                // Nếu số dư của người nào đó đã giải quyết, chuyển sang người tiếp theo
+                if (creditor.amount < 0.01) i++;
+                if (debtor.amount < 0.01) j++;
+            }
+
+            // Hiển thị các giao dịch chuyển tiền
+            $('#transfersList').empty();
+
+            if (transfers.length === 0) {
+                $('#transfersList').append('<p class="text-muted">Không cần chuyển tiền.</p>');
+            } else {
+                transfers.forEach(transfer => {
+                    $('#transfersList').append(`
+                            <div class="transfer-item">
+                                <i class="fas fa-exchange-alt me-2"></i>
+                                <strong>${transfer.from}</strong> chuyển <strong>${formatCurrency(transfer.amount)}</strong> cho <strong>${transfer.to}</strong>
+                            </div>
+                        `);
+                });
+            }
+
+            // Hiển thị kết quả
+            $('#resultContainer').show();
+        }
+
+        // Xử lý thêm thành viên
+        $('#addMemberBtn').click(function () {
+            const memberName = $('#memberName').val().trim();
+
+            if (memberName) {
+                if (members.includes(memberName)) {
+                    alert('Thành viên này đã được thêm vào danh sách!');
+                } else {
+                    members.push(memberName);
+                    renderMembers();
+                    $('#memberName').val('');
+                }
+            } else {
+                alert('Vui lòng nhập tên thành viên!');
+            }
+        });
+
+        // Xử lý khi nhấn Enter ở input thêm thành viên
+        $('#memberName').keypress(function (e) {
+            if (e.which === 13) {
+                $('#addMemberBtn').click();
+                e.preventDefault();
+            }
+        });
+
+        // Xử lý xóa thành viên
+        $(document).on('click', '.member-close', function () {
+            const index = $(this).data('index');
+            const memberToRemove = members[index];
+
+            // Kiểm tra xem thành viên có chi phí nào không
+            const hasExpenses = expenses.some(expense => expense.payer === memberToRemove);
+
+            if (hasExpenses) {
+                alert('Không thể xóa thành viên này vì họ đã có chi phí trong danh sách. Vui lòng xóa chi phí trước!');
+                return;
+            }
+
+            members.splice(index, 1);
+            renderMembers();
+        });
+
+        // Xử lý thêm chi phí
+        $('#addExpenseBtn').click(function () {
+            const title = $('#expenseTitle').val().trim();
+            const amount = $('#expenseAmount').val().trim();
+            const payer = $('#expensePayer').val();
+
+            if (!title) {
+                alert('Vui lòng nhập mục chi tiêu!');
+                return;
+            }
+
+            if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+                alert('Vui lòng nhập số tiền hợp lệ!');
+                return;
+            }
+
+            if (!payer) {
+                alert('Vui lòng chọn người thanh toán!');
+                return;
+            }
+
+            expenses.push({
+                title: title,
+                amount: parseFloat(amount),
+                payer: payer
+            });
+
+            renderExpenses();
+
+            // Xóa trắng các trường input
+            $('#expenseTitle').val('');
+            $('#expenseAmount').val('');
+            $('#expensePayer').val('');
+        });
+
+        // Xử lý xóa chi phí
+        $(document).on('click', '.delete-expense', function () {
+            const index = $(this).data('index');
+            expenses.splice(index, 1);
+            renderExpenses();
+        });
+
+        // Xử lý tính toán chia tiền
+        $('#calculateBtn').click(function () {
+            calculateSplit();
+        });
+
+        // Xử lý lưu sự kiện
+        $('#saveEventBtn').click(function () {
+            saveEvent();
+        });
+
+        // Xử lý đổi tên sự kiện
+        $('#saveNewTitleBtn').click(function () {
+            const newTitle = $('#newEventTitle').val().trim();
+            if (newTitle) {
+                $('#eventTitle').text(newTitle);
+                $('#editTitleModal').modal('hide');
+            } else {
+                alert('Vui lòng nhập tên sự kiện!');
+            }
+        });
+
+        // Hiển thị danh sách sự kiện đã lưu khi mở modal
+        $('#savedEventsBtn').click(function () {
+            renderSavedEvents();
+        });
+
+        // Xử lý khi chọn sự kiện đã lưu
+        $(document).on('click', '.event-item', function () {
+            const eventId = $(this).data('event-id');
+            loadEvent(eventId);
+        });
+
+        // Xử lý tạo sự kiện mới
+        $('#newEventBtn').click(function () {
+            currentEventId = 'event_' + Date.now();
+            $('#eventTitle').text('Sự Kiện Mới');
+            members = [];
+            expenses = [];
+            renderMembers();
+            renderExpenses();
+            $('#resultContainer').hide();
+        });
+
+        // Khởi tạo
+        renderMembers();
+        renderExpenses();
+    });
+</script>
+</body>
+</html>
