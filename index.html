@@ -209,7 +209,12 @@
                             </div>
                         </div>
                         <div class="transfers">
-                            <h6>Các giao dịch cần thực hiện</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0">Các giao dịch cần thực hiện</h6>
+                                <button class="btn btn-sm btn-outline-primary" id="copyTransfersBtn">
+                                    <i class="fas fa-copy me-1"></i> Copy
+                                </button>
+                            </div>
                             <div id="transfersList"></div>
                         </div>
                     </div>
@@ -745,6 +750,34 @@
                 // Lưu ID sự kiện mới
                 localStorage.setItem('currentEventId', currentEventId);
             }
+        });
+
+        // Xử lý sao chép giao dịch
+        $('#copyTransfersBtn').click(function () {
+            if ($('#transfersList').children().length === 0 ||
+                $('#transfersList').text().includes('Không cần chuyển tiền')) {
+                alert('Không có giao dịch nào để sao chép!');
+                return;
+            }
+
+            // Tạo nội dung để sao chép
+            let copyContent = `GIAO DỊCH CẦN THỰC HIỆN - ${$('#eventTitle').text()}\n\n`;
+
+            $('#transfersList .transfer-item').each(function () {
+                // Loại bỏ icon và format lại text
+                const transferText = $(this).text().trim().replace('ị ', 'ị: ');
+                copyContent += transferText + '\n';
+            });
+
+            // Copy vào clipboard
+            navigator.clipboard.writeText(copyContent)
+                .then(() => {
+                    alert('Đã sao chép các giao dịch thành công!');
+                })
+                .catch(err => {
+                    console.error('Không thể sao chép: ', err);
+                    alert('Không thể sao chép. Vui lòng thử lại sau!');
+                });
         });
     });
 </script>
