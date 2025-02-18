@@ -264,6 +264,8 @@
     </div>
 </div>
 
+<div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
+
 <footer class="bg-light py-3 mt-5">
     <div class="container text-center">
         <p class="text-muted mb-0">© 2025 Ứng Dụng Chia Tiền Nhóm</p>
@@ -289,7 +291,7 @@
         // Hàm lưu dữ liệu vào localStorage
         function saveEvent(showAlert = true) {
             if (members.length === 0 && showAlert) {
-                alert('Vui lòng thêm ít nhất một thành viên trước khi lưu!');
+                showToast('Vui lòng thêm ít nhất một thành viên trước khi lưu!', 'warning');
                 return;
             }
 
@@ -310,7 +312,7 @@
             localStorage.setItem('currentEventId', currentEventId);
 
             if (showAlert) {
-                alert('Sự kiện đã được lưu thành công!');
+                showToast('Sự kiện đã được lưu thành công!', 'success');
             }
         }
 
@@ -363,7 +365,7 @@
                     // Cập nhật danh sách sự kiện
                     renderSavedEvents();
 
-                    alert('Đã xoá sự kiện thành công!');
+                    showToast('Đã xoá sự kiện thành công!', 'success');
                 }
             }
         }
@@ -480,12 +482,12 @@
         // Thuật toán chia tiền
         function calculateSplit() {
             if (members.length === 0) {
-                alert('Vui lòng thêm ít nhất một thành viên!');
+                showToast('Vui lòng thêm ít nhất một thành viên!', 'warning');
                 return;
             }
 
             if (expenses.length === 0) {
-                alert('Vui lòng thêm ít nhất một chi phí!');
+                showToast('Vui lòng thêm ít nhất một chi phí!', 'warning');
                 return;
             }
 
@@ -599,7 +601,7 @@
 
             if (memberName) {
                 if (members.includes(memberName)) {
-                    alert('Thành viên này đã được thêm vào danh sách!');
+                    showToast('Thành viên này đã được thêm vào danh sách!', 'warning');
                 } else {
                     members.push(memberName);
                     renderMembers();
@@ -609,7 +611,7 @@
                     saveEvent(false);
                 }
             } else {
-                alert('Vui lòng nhập tên thành viên!');
+                showToast('Vui lòng nhập tên thành viên!', 'warning');
             }
         });
 
@@ -630,7 +632,7 @@
             const hasExpenses = expenses.some(expense => expense.payer === memberToRemove);
 
             if (hasExpenses) {
-                alert('Không thể xóa thành viên này vì họ đã có chi phí trong danh sách. Vui lòng xóa chi phí trước!');
+                showToast('Không thể xóa thành viên này vì họ đã có chi phí trong danh sách. Vui lòng xóa chi phí trước!', 'error');
                 return;
             }
 
@@ -648,17 +650,17 @@
             const payer = $('#expensePayer').val();
 
             if (!title) {
-                alert('Vui lòng nhập mục chi tiêu!');
+                showToast('Vui lòng nhập mục chi tiêu!', 'warning');
                 return;
             }
 
             if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-                alert('Vui lòng nhập số tiền hợp lệ!');
+                showToast('Vui lòng nhập số tiền hợp lệ!', 'warning');
                 return;
             }
 
             if (!payer) {
-                alert('Vui lòng chọn người thanh toán!');
+                showToast('Vui lòng chọn người thanh toán!', 'warning');
                 return;
             }
 
@@ -709,7 +711,7 @@
                 // Tự động lưu sau khi đổi tên
                 saveEvent(false);
             } else {
-                alert('Vui lòng nhập tên sự kiện!');
+                showToast('Vui lòng nhập tên sự kiện!', 'warning');
             }
         });
 
@@ -752,11 +754,55 @@
             }
         });
 
+        // Hàm hiển thị toast thay cho alert
+        function showToast(message, type = 'info') {
+            const toastId = 'toast-' + Date.now();
+            const bgClass = {
+                'success': 'bg-success text-white',
+                'error': 'bg-danger text-white',
+                'warning': 'bg-warning text-dark',
+                'info': 'bg-info text-dark'
+            };
+            const iconClass = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-circle',
+                'warning': 'fa-exclamation-triangle',
+                'info': 'fa-info-circle'
+            };
+
+            const toastHTML = `
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="${toastId}">
+                    <div class="toast-header ${bgClass[type]}">
+                        <i class="fas ${iconClass[type]} me-2"></i>
+                        <strong class="me-auto">Thông báo</strong>
+                        <small>Vừa xong</small>
+                        <button type="button" class="btn-close ${type === 'success' || type === 'error' ? 'btn-close-white' : ''}" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+
+            $('#toastContainer').append(toastHTML);
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement, {
+                autohide: true,
+                delay: 3000
+            });
+            toast.show();
+
+            // Xóa toast khỏi DOM sau khi ẩn
+            toastElement.addEventListener('hidden.bs.toast', function () {
+                $(this).remove();
+            });
+        }
+
         // Xử lý sao chép giao dịch
         $('#copyTransfersBtn').click(function () {
             if ($('#transfersList').children().length === 0 ||
                 $('#transfersList').text().includes('Không cần chuyển tiền')) {
-                alert('Không có giao dịch nào để sao chép!');
+                showToast('Không có giao dịch nào để sao chép!', 'warning');
                 return;
             }
 
@@ -772,11 +818,11 @@
             // Copy vào clipboard
             navigator.clipboard.writeText(copyContent)
                 .then(() => {
-                    alert('Đã sao chép các giao dịch thành công!');
+                    showToast('Đã sao chép các giao dịch thành công!', 'warning');
                 })
                 .catch(err => {
                     console.error('Không thể sao chép: ', err);
-                    alert('Không thể sao chép. Vui lòng thử lại sau!');
+                    showToast('Không thể sao chép. Vui lòng thử lại sau!', 'warning');
                 });
         });
     });
