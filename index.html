@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="https://avatars.githubusercontent.com/u/86670683">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-85JFS83FXC"></script>
     <script>
@@ -139,6 +140,9 @@
                         <div>
                             <button class="btn btn-sm btn-outline-primary me-2" id="saveEventBtn">
                                 <i class="fas fa-save me-1"></i> Lưu
+                            </button>
+                            <button class="btn btn-sm btn-outline-success me-2" id="shareEventBtn">
+                                <i class="fas fa-share-alt me-1"></i> Chia sẻ
                             </button>
                             <button class="btn btn-sm btn-outline-secondary" id="editTitleBtn" data-bs-toggle="modal"
                                     data-bs-target="#editTitleModal">
@@ -279,6 +283,34 @@
 
 <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
 
+<!-- Modal Chia Sẻ Sự Kiện -->
+<div class="modal fade" id="shareEventModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chia Sẻ Sự Kiện</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sử dụng đường link dưới đây để chia sẻ thông tin sự kiện:</p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="shareLink" readonly>
+                    <button class="btn btn-primary" id="copyShareLinkBtn">
+                        <i class="fas fa-copy me-1"></i> Copy
+                    </button>
+                </div>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i> Link này chứa tất cả thông tin về sự kiện, bao gồm danh sách
+                    thành viên và chi phí.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <footer class="bg-light py-3 mt-5">
     <div class="container text-center">
         <p class="text-muted mb-0">© 2025 Ứng Dụng Chia Tiền Nhóm</p>
@@ -292,6 +324,9 @@
         let currentEventId = localStorage.getItem('currentEventId') || 'event_' + Date.now();
         let members = [];
         let expenses = [];
+
+        // Kiểm tra xem có dữ liệu trong URL không
+        checkForSharedData();
 
         // Khởi tạo - Tải dữ liệu gần nhất nếu có
         loadLatestEvent();
@@ -838,6 +873,66 @@
                     showToast('Không thể sao chép. Vui lòng thử lại sau!', 'warning');
                 });
         });
+
+        // Thêm handler cho nút share
+        $('#shareEventBtn').click(function () {
+            // Tạo dữ liệu để chia sẻ
+            const eventData = {
+                title: $('#eventTitle').text(),
+                members: members,
+                expenses: expenses
+            };
+
+            // Chuyển dữ liệu thành chuỗi base64
+            const compressedData = LZString.compressToBase64(JSON.stringify(eventData));
+
+            // Tạo URL với tham số data
+            const shareUrl = window.location.origin + window.location.pathname + '?data=' + encodeURIComponent(compressedData);
+
+            // Hiển thị modal với link
+            $('#shareLink').val(shareUrl);
+            $('#shareEventModal').modal('show');
+        });
+
+        // Xử lý copy link chia sẻ
+        $('#copyShareLinkBtn').click(function () {
+            const shareLink = $('#shareLink');
+            shareLink.select();
+            document.execCommand('copy');
+            showToast('Đã sao chép đường link thành công!', 'success');
+        });
+
+        // Hàm kiểm tra và tải dữ liệu từ URL khi trang được load
+        function checkForSharedData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedData = urlParams.get('data');
+
+            if (sharedData) {
+                try {
+                    // Giải nén dữ liệu base64
+                    const decompressedData = LZString.decompressFromBase64(sharedData);
+                    const eventData = JSON.parse(decompressedData);
+
+                    // Cập nhật dữ liệu sự kiện
+                    $('#eventTitle').text(eventData.title || 'Sự Kiện Được Chia Sẻ');
+                    members = eventData.members || [];
+                    expenses = eventData.expenses || [];
+
+                    // Render lại giao diện
+                    renderMembers();
+                    renderExpenses();
+
+                    // Thông báo
+                    showToast('Đã tải dữ liệu sự kiện từ đường link chia sẻ!', 'success');
+
+                    // Xóa tham số URL để tránh load lại dữ liệu khi refresh
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (error) {
+                    console.error('Lỗi khi tải dữ liệu chia sẻ:', error);
+                    showToast('Link chia sẻ không hợp lệ hoặc đã hết hạn!', 'error');
+                }
+            }
+        }
     });
 </script>
 </body>
