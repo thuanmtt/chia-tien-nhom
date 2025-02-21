@@ -135,7 +135,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="fas fa-users header-icon"></i>
-                            <span id="eventTitle">Sự Kiện Mới</span>
+                            <span id="eventTitle" contenteditable="true">Sự Kiện Mới</span>
                         </h5>
                         <div>
                             <button class="btn btn-sm btn-outline-primary me-2" id="saveEventBtn">
@@ -143,10 +143,6 @@
                             </button>
                             <button class="btn btn-sm btn-outline-success me-2" id="shareEventBtn">
                                 <i class="fas fa-share-alt me-1"></i> Chia sẻ
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" id="editTitleBtn" data-bs-toggle="modal"
-                                    data-bs-target="#editTitleModal">
-                                <i class="fas fa-edit me-1"></i> Đổi Tên
                             </button>
                         </div>
                     </div>
@@ -241,28 +237,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Đổi Tên Sự Kiện -->
-<div class="modal fade" id="editTitleModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Đổi Tên Sự Kiện</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="newEventTitle" class="form-label">Tên sự kiện mới</label>
-                    <input type="text" class="form-control" id="newEventTitle">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary" id="saveNewTitleBtn">Lưu</button>
             </div>
         </div>
     </div>
@@ -779,17 +753,23 @@
             saveEvent(true);
         });
 
-        // Xử lý đổi tên sự kiện
-        $('#saveNewTitleBtn').click(function () {
-            const newTitle = $('#newEventTitle').val().trim();
+        // Xử lý khi người dùng chỉnh sửa tên sự kiện
+        $('#eventTitle').on('blur', function () {
+            const newTitle = $(this).text().trim();
             if (newTitle) {
-                $('#eventTitle').text(newTitle);
-                $('#editTitleModal').modal('hide');
-
-                // Tự động lưu sau khi đổi tên
+                // Lưu tên sự kiện mới
                 saveEvent(false);
             } else {
                 showToast('Vui lòng nhập tên sự kiện!', 'warning');
+                $(this).text('Sự Kiện Mới'); // Đặt lại tên mặc định nếu người dùng xóa hết
+            }
+        });
+
+        // Xử lý khi người dùng nhấn Enter để kết thúc chỉnh sửa
+        $('#eventTitle').on('keypress', function (e) {
+            if (e.which === 13) { // 13 là mã phím Enter
+                e.preventDefault(); // Ngăn không cho xuống dòng
+                $(this).blur(); // Kích hoạt sự kiện blur để lưu tên
             }
         });
 
