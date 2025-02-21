@@ -154,10 +154,13 @@
                 <div class="card-body">
                     <div class="mb-4">
                         <h6 class="mb-3"><i class="fas fa-user-plus me-2"></i>Thành Viên</h6>
-                        <div class="input-group mb-3">
-                            <input type="text" class="form-control" id="memberName" placeholder="Tên thành viên...">
-                            <button class="btn btn-primary" id="addMemberBtn">Thêm</button>
-                        </div>
+                        <form id="memberForm" class="mb-3">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="memberName" name="memberName"
+                                       placeholder="Tên thành viên...">
+                                <button type="submit" class="btn btn-primary">Thêm</button>
+                            </div>
+                        </form>
                         <div id="membersList" class="d-flex flex-wrap"></div>
                     </div>
                 </div>
@@ -169,29 +172,31 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label for="expenseTitle" class="form-label">Mục chi tiêu</label>
-                                <input type="text" class="form-control" id="expenseTitle"
-                                       placeholder="Ví dụ: Tiền ăn, tiền xe...">
+                        <form id="expenseForm">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="expenseTitle" class="form-label">Mục chi tiêu</label>
+                                    <input type="text" class="form-control" id="expenseTitle" name="expenseTitle"
+                                           placeholder="Ví dụ: Tiền ăn, tiền xe...">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="expenseAmount" class="form-label">Số tiền (VND)</label>
+                                    <input type="number" class="form-control" id="expenseAmount" name="expenseAmount"
+                                           placeholder="Nhập số tiền...">
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label for="expenseAmount" class="form-label">Số tiền (VND)</label>
-                                <input type="number" class="form-control" id="expenseAmount"
-                                       placeholder="Nhập số tiền...">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="expensePayer" class="form-label">Người thanh toán</label>
+                                    <select class="form-select" id="expensePayer" name="expensePayer">
+                                        <option value="" selected disabled>Chọn người thanh toán...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">Thêm Chi Phí</button>
+                                </div>
                             </div>
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label for="expensePayer" class="form-label">Người thanh toán</label>
-                                <select class="form-select" id="expensePayer">
-                                    <option value="" selected disabled>Chọn người thanh toán...</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 d-flex align-items-end">
-                                <button class="btn btn-primary w-100" id="addExpenseBtn">Thêm Chi Phí</button>
-                            </div>
-                        </div>
+                        </form>
                     </div>
                     <div class="expenses-list mt-4">
                         <h6 class="mb-3">Danh sách chi phí</h6>
@@ -644,7 +649,8 @@
         }
 
         // Xử lý thêm thành viên
-        $('#addMemberBtn').click(function () {
+        $('#memberForm').submit(function (e) {
+            e.preventDefault();
             const memberName = $('#memberName').val().trim();
 
             if (memberName) {
@@ -660,14 +666,6 @@
                 }
             } else {
                 showToast('Vui lòng nhập tên thành viên!', 'warning');
-            }
-        });
-
-        // Xử lý khi nhấn Enter ở input thêm thành viên
-        $('#memberName').keypress(function (e) {
-            if (e.which === 13) {
-                $('#addMemberBtn').click();
-                e.preventDefault();
             }
         });
 
@@ -692,7 +690,8 @@
         });
 
         // Xử lý thêm chi phí
-        $('#addExpenseBtn').click(function () {
+        $('#expenseForm').submit(function (e) {
+            e.preventDefault();
             const title = $('#expenseTitle').val().trim();
             const amount = $('#expenseAmount').val().trim();
             const payer = $('#expensePayer').val();
