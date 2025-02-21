@@ -207,12 +207,12 @@
 
             <div class="card">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-calculator header-icon"></i>Kết Quả Chia Tiền</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-calculator header-icon"></i>Kết Quả Chia Tiền</h5>
+                        <button class="btn btn-primary" id="calculateBtn">Tính Toán</button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <button class="btn btn-primary w-100" id="calculateBtn">Tính Toán</button>
-                    </div>
                     <div id="resultContainer" style="display: none;">
                         <div class="summary mb-4">
                             <h6>Tổng quan</h6>
@@ -392,6 +392,9 @@
 
                 // Lưu ID sự kiện hiện tại
                 localStorage.setItem('currentEventId', currentEventId);
+
+                // Tự động tính toán khi tải sự kiện
+                calculateSplit(false);
             }
         }
 
@@ -438,10 +441,14 @@
                     localStorage.setItem('currentEventId', currentEventId);
                     renderMembers();
                     renderExpenses();
+                    // Ẩn kết quả vì không có dữ liệu
+                    $('#resultContainer').hide();
                 }
             } else {
                 renderMembers();
                 renderExpenses();
+                // Ẩn kết quả vì không có dữ liệu
+                $('#resultContainer').hide();
             }
         }
 
@@ -461,6 +468,9 @@
 
                 $('#expensePayer').append(`<option value="${member}">${member}</option>`);
             });
+
+            // Tự động tính toán khi danh sách thành viên thay đổi
+            autoCalculate();
         }
 
         // Hàm hiển thị danh sách chi phí
@@ -469,6 +479,8 @@
 
             if (expenses.length === 0) {
                 $('#expensesList').append('<p class="text-muted">Chưa có chi phí nào.</p>');
+                // Tự động tính toán (sẽ ẩn kết quả vì không có chi phí)
+                autoCalculate();
                 return;
             }
 
@@ -491,6 +503,19 @@
                 </div>
             `);
             });
+
+            // Tự động tính toán khi danh sách chi phí thay đổi
+            autoCalculate();
+        }
+
+        // Hàm tự động tính toán nếu có dữ liệu hợp lệ
+        function autoCalculate() {
+            if (members.length > 0 && expenses.length > 0) {
+                calculateSplit(false); // Không hiển thị thông báo lỗi
+            } else {
+                // Ẩn kết quả nếu không đủ dữ liệu
+                $('#resultContainer').hide();
+            }
         }
 
         // Hàm hiển thị danh sách sự kiện đã lưu
@@ -533,14 +558,16 @@
         }
 
         // Thuật toán chia tiền
-        function calculateSplit() {
+        function calculateSplit(showErrors = true) {
             if (members.length === 0) {
-                showToast('Vui lòng thêm ít nhất một thành viên!', 'warning');
+                if (showErrors) showToast('Vui lòng thêm ít nhất một thành viên!', 'warning');
+                $('#resultContainer').hide();
                 return;
             }
 
             if (expenses.length === 0) {
-                showToast('Vui lòng thêm ít nhất một chi phí!', 'warning');
+                if (showErrors) showToast('Vui lòng thêm ít nhất một chi phí!', 'warning');
+                $('#resultContainer').hide();
                 return;
             }
 
@@ -663,6 +690,7 @@
 
                     // Tự động lưu sau khi thêm thành viên
                     saveEvent(false);
+                    // Không cần gọi autoCalculate() vì đã được gọi trong renderMembers()
                 }
             } else {
                 showToast('Vui lòng nhập tên thành viên!', 'warning');
@@ -687,6 +715,7 @@
 
             // Tự động lưu sau khi xóa thành viên
             saveEvent(false);
+            // Không cần gọi autoCalculate() vì đã được gọi trong renderMembers()
         });
 
         // Xử lý thêm chi phí
@@ -726,6 +755,7 @@
 
             // Tự động lưu sau khi thêm chi phí
             saveEvent(false);
+            // Không cần gọi autoCalculate() vì đã được gọi trong renderExpenses()
         });
 
         // Xử lý xóa chi phí
@@ -736,11 +766,12 @@
 
             // Tự động lưu sau khi xóa chi phí
             saveEvent(false);
+            // Không cần gọi autoCalculate() vì đã được gọi trong renderExpenses()
         });
 
-        // Xử lý tính toán chia tiền
+        // Vẫn giữ nút tính toán cho trường hợp người dùng muốn tính lại
         $('#calculateBtn').click(function () {
-            calculateSplit();
+            calculateSplit(true); // Hiển thị thông báo lỗi nếu có
         });
 
         // Xử lý lưu sự kiện (hiện thông báo)
@@ -776,6 +807,7 @@
 
             const eventId = $(this).data('event-id');
             loadEvent(eventId);
+            // Không cần gọi autoCalculate() vì đã được gọi trong loadEvent()
         });
 
         // Xử lý xoá sự kiện
@@ -865,7 +897,7 @@
             // Copy vào clipboard
             navigator.clipboard.writeText(copyContent)
                 .then(() => {
-                    showToast('Đã sao chép các giao dịch thành công!', 'warning');
+                    showToast('Đã sao chép các giao dịch thành công!', 'success');
                 })
                 .catch(err => {
                     console.error('Không thể sao chép: ', err);
