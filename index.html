@@ -484,7 +484,7 @@
                     } else if (expense.beneficiaries.length === 2) {
                         benefitInfo = `cho ${expense.beneficiaries.join(' và ')}`;
                     } else if (expense.beneficiaries.length < members.length) {
-                        benefitInfo = `cho ${expense.beneficiaries.length} người`;
+                        benefitInfo = `cho ${expense.beneficiaries.length} người: (${expense.beneficiaries.join(', ')})`;
                     } else {
                         benefitInfo = 'cho tất cả mọi người';
                     }
