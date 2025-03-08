@@ -188,7 +188,24 @@
                                         <option value="" selected disabled>Chọn người thanh toán...</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6 d-flex align-items-end">
+                                <div class="col-md-6">
+                                    <label for="benefitType" class="form-label">Thanh toán cho ai</label>
+                                    <select class="form-select" id="benefitType" name="benefitType">
+                                        <option value="all" selected>Cho tất cả</option>
+                                        <option value="selected">Cho một số người</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3" id="beneficiariesContainer" style="display: none;">
+                                <div class="col-12">
+                                    <label class="form-label">Chọn người được hưởng lợi</label>
+                                    <div id="beneficiariesList" class="border rounded p-2">
+                                        <!-- Danh sách checkboxes sẽ được render ở đây -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12 d-flex align-items-end">
                                     <button type="submit" class="btn btn-primary w-100">Thêm Chi Phí</button>
                                 </div>
                             </div>
@@ -453,32 +470,48 @@
 
             if (expenses.length === 0) {
                 $('#expensesList').append('<p class="text-muted">Chưa có chi phí nào.</p>');
-                // Tự động tính toán (sẽ ẩn kết quả vì không có chi phí)
                 autoCalculate();
                 return;
             }
 
             expenses.forEach(function (expense, index) {
+                let benefitInfo = '';
+                if (expense.benefitType === 'all') {
+                    benefitInfo = 'cho tất cả mọi người';
+                } else if (expense.beneficiaries && expense.beneficiaries.length > 0) {
+                    if (expense.beneficiaries.length === 1) {
+                        benefitInfo = `chỉ cho ${expense.beneficiaries[0]}`;
+                    } else if (expense.beneficiaries.length === 2) {
+                        benefitInfo = `cho ${expense.beneficiaries.join(' và ')}`;
+                    } else if (expense.beneficiaries.length < members.length) {
+                        benefitInfo = `cho ${expense.beneficiaries.length} người`;
+                    } else {
+                        benefitInfo = 'cho tất cả mọi người';
+                    }
+                }
+
                 $('#expensesList').append(`
-                <div class="expense-item p-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">${expense.title}</h6>
-                            <p class="mb-0 text-muted">
-                                <small>${expense.payer} đã thanh toán ${formatCurrency(expense.amount)}</small>
-                            </p>
-                        </div>
-                        <div>
-                            <span class="action-btn delete-expense" data-index="${index}">
-                                <i class="fas fa-trash"></i>
-                            </span>
-                        </div>
-                    </div>
+        <div class="expense-item p-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">${expense.title}</h6>
+                    <p class="mb-0 text-muted">
+                        <small>${expense.payer} đã thanh toán ${formatCurrency(expense.amount)} ${benefitInfo}</small>
+                    </p>
                 </div>
-            `);
+                <div>
+                    <span class="action-btn edit-expense" data-index="${index}">
+                        <i class="fas fa-edit"></i>
+                    </span>
+                    <span class="action-btn delete-expense" data-index="${index}">
+                        <i class="fas fa-trash"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+        `);
             });
 
-            // Tự động tính toán khi danh sách chi phí thay đổi
             autoCalculate();
         }
 
@@ -545,41 +578,66 @@
                 return;
             }
 
-            // Tính tổng chi phí và số tiền mỗi người phải trả
-            const totalExpense = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
-            const amountPerPerson = totalExpense / members.length;
-
-            // Tính số dư của mỗi người
+            // Khởi tạo số dư cho mỗi thành viên
             const balances = {};
             members.forEach(member => {
                 balances[member] = 0;
             });
 
+            // Cộng tiền đã chi cho người thanh toán
             expenses.forEach(expense => {
                 balances[expense.payer] += parseFloat(expense.amount);
             });
 
-            members.forEach(member => {
-                balances[member] -= amountPerPerson;
+            // Tính tiền mỗi người phải trả dựa trên số người hưởng lợi
+            expenses.forEach(expense => {
+                const amount = parseFloat(expense.amount);
+                const beneficiaries = expense.beneficiaries || members;
+                const amountPerPerson = amount / beneficiaries.length;
+
+                beneficiaries.forEach(member => {
+                    balances[member] -= amountPerPerson;
+                });
             });
 
             // Hiển thị tổng quan
             $('#summaryTableBody').empty();
+
+            // Tính tổng chi tiêu và phần chi tiêu của từng người
+            const totalExpense = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+
+            // Tạo đối tượng chứa thông tin chi tiêu của từng người
+            const memberExpenseInfo = {};
             members.forEach(member => {
+                // Số tiền đã trả
                 const paid = expenses
                     .filter(expense => expense.payer === member)
                     .reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
 
+                // Số tiền cần trả (dựa trên các chi phí mà thành viên này được hưởng lợi)
+                const needToPay = expenses.reduce((sum, expense) => {
+                    const beneficiaries = expense.beneficiaries || members;
+                    if (beneficiaries.includes(member)) {
+                        return sum + (parseFloat(expense.amount) / beneficiaries.length);
+                    }
+                    return sum;
+                }, 0);
+
+                memberExpenseInfo[member] = {
+                    paid: paid,
+                    needToPay: needToPay
+                };
+
                 $('#summaryTableBody').append(`
-                <tr>
-                    <td>${member}</td>
-                    <td class="text-end">${formatCurrency(paid)}</td>
-                    <td class="text-end">${formatCurrency(amountPerPerson)}</td>
-                    <td class="text-end ${balances[member] >= 0 ? 'text-success' : 'text-danger'}">
-                        ${formatCurrency(balances[member])}
-                    </td>
-                </tr>
-            `);
+        <tr>
+            <td>${member}</td>
+            <td class="text-end">${formatCurrency(paid)}</td>
+            <td class="text-end">${formatCurrency(needToPay)}</td>
+            <td class="text-end ${balances[member] >= 0 ? 'text-success' : 'text-danger'}">
+                ${formatCurrency(balances[member])}
+            </td>
+        </tr>
+        `);
             });
 
             // Tính toán các giao dịch chuyển tiền
@@ -587,9 +645,9 @@
             const debtors = [];   // Những người trả ít hơn
 
             for (let member in balances) {
-                if (balances[member] > 0) {
+                if (balances[member] > 0.01) {  // Dùng 0.01 thay vì 0 để tránh lỗi làm tròn số thập phân
                     creditors.push({name: member, amount: balances[member]});
-                } else if (balances[member] < 0) {
+                } else if (balances[member] < -0.01) {
                     debtors.push({name: member, amount: -balances[member]});
                 }
             }
@@ -609,7 +667,7 @@
                 // Số tiền chuyển là giá trị nhỏ nhất giữa hai số dư
                 const transferAmount = Math.min(creditor.amount, debtor.amount);
 
-                if (transferAmount > 0) {
+                if (transferAmount > 0.01) {
                     transfers.push({
                         from: debtor.name,
                         to: creditor.name,
@@ -634,11 +692,11 @@
             } else {
                 transfers.forEach(transfer => {
                     $('#transfersList').append(`
-                    <div class="transfer-item">
-                        <i class="fas fa-exchange-alt me-2"></i>
-                        <strong>${transfer.from}</strong> chuyển <strong>${formatCurrency(transfer.amount)}</strong> cho <strong>${transfer.to}</strong>
-                    </div>
-                `);
+            <div class="transfer-item">
+                <i class="fas fa-exchange-alt me-2"></i>
+                <strong>${transfer.from}</strong> chuyển <strong>${formatCurrency(transfer.amount)}</strong> cho <strong>${transfer.to}</strong>
+            </div>
+            `);
                 });
             }
 
@@ -648,6 +706,31 @@
             // Tự động lưu sau khi tính toán
             saveEvent(false);
         }
+
+        function renderBeneficiaries() {
+            $('#beneficiariesList').empty();
+
+            members.forEach(function (member) {
+                $('#beneficiariesList').append(`
+            <div class="form-check">
+                <input class="form-check-input beneficiary-checkbox" type="checkbox" value="${member}" id="benefit_${member}">
+                <label class="form-check-label" for="benefit_${member}">
+                    ${member}
+                </label>
+            </div>
+        `);
+            });
+        }
+
+        // Hiển thị hoặc ẩn danh sách người hưởng lợi dựa vào loại hưởng lợi
+        $('#benefitType').change(function () {
+            if ($(this).val() === 'selected') {
+                $('#beneficiariesContainer').show();
+                renderBeneficiaries();
+            } else {
+                $('#beneficiariesContainer').hide();
+            }
+        });
 
         // Xử lý thêm thành viên
         $('#memberForm').submit(function (e) {
@@ -698,6 +781,7 @@
             const title = $('#expenseTitle').val().trim();
             const amount = $('#expenseAmount').val().trim();
             const payer = $('#expensePayer').val();
+            const benefitType = $('#benefitType').val();
 
             if (!title) {
                 showToast('Vui lòng nhập mục chi tiêu!', 'warning');
@@ -714,10 +798,31 @@
                 return;
             }
 
+            // Xác định người hưởng lợi
+            let beneficiaries = [];
+
+            if (benefitType === 'all') {
+                // Nếu là tất cả, thêm toàn bộ thành viên
+                beneficiaries = [...members];
+            } else {
+                // Nếu chỉ là một số người, lấy danh sách từ checkbox đã chọn
+                $('.beneficiary-checkbox:checked').each(function () {
+                    beneficiaries.push($(this).val());
+                });
+
+                // Kiểm tra nếu không có ai được chọn
+                if (beneficiaries.length === 0) {
+                    showToast('Vui lòng chọn ít nhất một người được hưởng lợi!', 'warning');
+                    return;
+                }
+            }
+
             expenses.push({
                 title: title,
                 amount: parseFloat(amount),
-                payer: payer
+                payer: payer,
+                benefitType: benefitType,
+                beneficiaries: beneficiaries
             });
 
             renderExpenses();
@@ -726,10 +831,10 @@
             $('#expenseTitle').val('');
             $('#expenseAmount').val('');
             $('#expensePayer').val('');
+            $('#benefitType').val('all').trigger('change');
 
             // Tự động lưu sau khi thêm chi phí
             saveEvent(false);
-            // Không cần gọi autoCalculate() vì đã được gọi trong renderExpenses()
         });
 
         // Xử lý xóa chi phí
@@ -911,6 +1016,35 @@
             shareLink.select();
             document.execCommand('copy');
             showToast('Đã sao chép đường link thành công!', 'success');
+        });
+
+        $(document).on('click', '.edit-expense', function () {
+            const index = $(this).data('index');
+            const expense = expenses[index];
+
+            // Điền thông tin chi phí vào form
+            $('#expenseTitle').val(expense.title);
+            $('#expenseAmount').val(expense.amount);
+            $('#expensePayer').val(expense.payer);
+            $('#benefitType').val(expense.benefitType || 'all').trigger('change');
+
+            // Nếu là chi tiêu cho một số người, chọn lại các checkbox
+            if (expense.benefitType === 'selected' && expense.beneficiaries) {
+                setTimeout(() => {
+                    expense.beneficiaries.forEach(member => {
+                        $(`#benefit_${member}`).prop('checked', true);
+                    });
+                }, 100);
+            }
+
+            // Xóa chi phí cũ
+            expenses.splice(index, 1);
+            renderExpenses();
+
+            // Cuộn lên form để người dùng có thể chỉnh sửa
+            $('html, body').animate({
+                scrollTop: $("#expenseForm").offset().top - 100
+            }, 500);
         });
 
         // Hàm kiểm tra và tải dữ liệu từ URL khi trang được load
