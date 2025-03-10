@@ -762,7 +762,10 @@
             // Kiểm tra xem thành viên có chi phí nào không
             const hasExpenses = expenses.some(expense => expense.payer === memberToRemove);
 
-            if (hasExpenses) {
+            // Kiểm tra nếu thành viên là beneficiaries của bất kỳ khoản chi phí nào
+            const isBeneficiary = expenses.some(expense => expense.beneficiaries && expense.beneficiaries.includes(memberToRemove));
+
+            if (hasExpenses || isBeneficiary) {
                 showToast('Không thể xóa thành viên này vì họ đã có chi phí trong danh sách. Vui lòng xóa chi phí trước!', 'error');
                 return;
             }
