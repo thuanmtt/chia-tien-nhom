@@ -199,7 +199,14 @@
                             </div>
                             <div class="row g-3 mb-3" id="beneficiariesContainer" style="display: none;">
                                 <div class="col-12">
-                                    <label class="form-label">Chọn người được hưởng lợi</label>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="form-label">Chọn người được hưởng lợi</label>
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-outline-primary mb-2"
+                                                    id="selectAllBeneficiaries">Chọn tất cả
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div id="beneficiariesList" class="border rounded p-2">
                                         <!-- Danh sách checkboxes sẽ được render ở đây -->
                                     </div>
@@ -732,6 +739,13 @@
                 $('#beneficiariesContainer').hide();
             }
         });
+
+        // Xử lý khi bấm nút "Chọn tất cả"
+        $('#selectAllBeneficiaries').click(function () {
+            const allChecked = $('.beneficiary-checkbox').length === $('.beneficiary-checkbox:checked').length;
+            $('.beneficiary-checkbox').prop('checked', !allChecked);
+        });
+
 
         // Xử lý thêm thành viên
         $('#memberForm').submit(function (e) {
