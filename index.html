@@ -139,6 +139,9 @@
                             <span id="eventTitle" contenteditable="true">Sự Kiện Mới</span>
                         </h5>
                         <div>
+                            <button class="btn btn-sm btn-outline-info" id="configBankInfoBtn">
+                                <i class="fas fa-university me-1"></i> Cấu hình ngân hàng
+                            </button>
                             <button class="btn btn-sm btn-outline-primary me-2" id="saveEventBtn">
                                 <i class="fas fa-save me-1"></i> Lưu
                             </button>
@@ -305,7 +308,105 @@
                 </div>
                 <div class="alert alert-info mt-3">
                     <i class="fas fa-info-circle me-2"></i> Link này chứa tất cả thông tin về sự kiện, bao gồm danh sách
-                    thành viên và chi phí.
+                    thành viên, chi phí và thông tin ngân hàng.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cấu Hình Thông Tin Ngân Hàng -->
+<div class="modal fade" id="bankInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cấu Hình Thông Tin Ngân Hàng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Thành viên</th>
+                            <th>Ngân hàng</th>
+                            <th>Số tài khoản</th>
+                            <th>Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="bankInfoTableBody">
+                        <!-- Dữ liệu sẽ được thêm vào đây -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary" id="addBankInfoBtn">
+                        <i class="fas fa-plus me-1"></i> Thêm thông tin ngân hàng
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm/Sửa Thông Tin Ngân Hàng -->
+<div class="modal fade" id="editBankInfoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm/Sửa Thông Tin Ngân Hàng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bankInfoForm">
+                    <div class="mb-3">
+                        <label class="form-label">Thành viên</label>
+                        <select class="form-select" id="bankInfoMember" required>
+                            <option value="" selected disabled>Chọn thành viên...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ngân hàng</label>
+                        <select class="form-select" id="bankInfoBank" required>
+                            <option value="" selected disabled>Chọn ngân hàng...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Số tài khoản</label>
+                        <input type="text" class="form-control" id="bankInfoAccount" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="saveBankInfoBtn">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Hiển Thị QR Code -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mã QR Chuyển Khoản</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrCodeContainer">
+                    <img id="qrCodeImage" src="" alt="QR Code" class="img-fluid">
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary" id="downloadQrBtn">
+                        <i class="fas fa-download me-1"></i> Tải ảnh QR
+                    </button>
                 </div>
             </div>
             <div class="modal-footer">
@@ -328,12 +429,157 @@
         let currentEventId = localStorage.getItem('currentEventId') || 'event_' + Date.now();
         let members = [];
         let expenses = [];
+        let bankInfo = JSON.parse(localStorage.getItem('bankInfo')) || {};
 
         // Kiểm tra xem có dữ liệu trong URL không
         checkForSharedData();
 
         // Khởi tạo - Tải dữ liệu gần nhất nếu có
         loadLatestEvent();
+
+        // Load danh sách ngân hàng
+        $.getJSON('banks.json', function (data) {
+            const banks = data.data.filter(bank => bank.supported);
+            banks.forEach(bank => {
+                $('#bankInfoBank').append(`<option value="${bank.code}">${bank.short_name} - ${bank.name}</option>`);
+            });
+        });
+
+        // Cập nhật danh sách thành viên trong modal cấu hình ngân hàng
+        function updateBankInfoMembers() {
+            $('#bankInfoMember').empty();
+            $('#bankInfoMember').append('<option value="" selected disabled>Chọn thành viên...</option>');
+            members.forEach(member => {
+                $('#bankInfoMember').append(`<option value="${member}">${member}</option>`);
+            });
+        }
+
+        // Hiển thị bảng thông tin ngân hàng
+        function renderBankInfoTable() {
+            $('#bankInfoTableBody').empty();
+
+            members.forEach(member => {
+                const info = bankInfo[member] || {};
+                const bankName = $('#bankInfoBank option[value="' + (info.bank || '') + '"]').text() || '';
+
+                $('#bankInfoTableBody').append(`
+                    <tr>
+                        <td>${member}</td>
+                        <td>${bankName}</td>
+                        <td>${info.account || ''}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary edit-bank-info" data-member="${member}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            ${info.bank ? `
+                                <button class="btn btn-sm btn-outline-danger delete-bank-info" data-member="${member}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        // Xử lý khi bấm nút cấu hình ngân hàng
+        $('#configBankInfoBtn').click(function () {
+            renderBankInfoTable();
+            $('#bankInfoModal').modal('show');
+        });
+
+        // Xử lý khi bấm nút thêm thông tin ngân hàng
+        $('#addBankInfoBtn').click(function () {
+            updateBankInfoMembers();
+            $('#bankInfoMember').val('');
+            $('#bankInfoBank').val('');
+            $('#bankInfoAccount').val('');
+            $('#editBankInfoModal').modal('show');
+        });
+
+        // Xử lý khi bấm nút sửa thông tin ngân hàng
+        $(document).on('click', '.edit-bank-info', function () {
+            const member = $(this).data('member');
+            const info = bankInfo[member] || {};
+
+            updateBankInfoMembers();
+            $('#bankInfoMember').val(member);
+            $('#bankInfoBank').val(info.bank || '');
+            $('#bankInfoAccount').val(info.account || '');
+
+            $('#editBankInfoModal').modal('show');
+        });
+
+        // Xử lý khi bấm nút xóa thông tin ngân hàng
+        $(document).on('click', '.delete-bank-info', function () {
+            const member = $(this).data('member');
+            if (confirm(`Bạn có chắc chắn muốn xóa thông tin ngân hàng của ${member}?`)) {
+                delete bankInfo[member];
+                localStorage.setItem('bankInfo', JSON.stringify(bankInfo));
+                renderBankInfoTable();
+                showToast('Đã xóa thông tin ngân hàng thành công!', 'success');
+            }
+        });
+
+        // Xử lý khi chọn thành viên trong modal thêm/sửa
+        $('#bankInfoMember').change(function () {
+            const member = $(this).val();
+            if (member && bankInfo[member]) {
+                $('#bankInfoBank').val(bankInfo[member].bank);
+                $('#bankInfoAccount').val(bankInfo[member].account);
+            } else {
+                $('#bankInfoBank').val('');
+                $('#bankInfoAccount').val('');
+            }
+        });
+
+        // Xử lý khi lưu thông tin ngân hàng
+        $('#saveBankInfoBtn').click(function () {
+            const member = $('#bankInfoMember').val();
+            const bank = $('#bankInfoBank').val();
+            const account = $('#bankInfoAccount').val();
+
+            if (!member || !bank || !account) {
+                showToast('Vui lòng điền đầy đủ thông tin!', 'warning');
+                return;
+            }
+
+            bankInfo[member] = {bank, account};
+            localStorage.setItem('bankInfo', JSON.stringify(bankInfo));
+            $('#editBankInfoModal').modal('hide');
+            renderBankInfoTable();
+            showToast('Đã lưu thông tin ngân hàng thành công!', 'success');
+        });
+
+        // Xử lý khi bấm nút tạo QR code
+        $(document).on('click', '.generate-qr-btn', function () {
+            const from = $(this).data('from');
+            const to = $(this).data('to');
+            const amount = $(this).data('amount');
+
+            if (!bankInfo[to]) {
+                showToast('Vui lòng cấu hình thông tin ngân hàng cho người nhận trước!', 'warning');
+                return;
+            }
+
+            const bankInfoTo = bankInfo[to];
+            const qrUrl = `https://qr.sepay.vn/img?acc=${bankInfoTo.account}&bank=${bankInfoTo.bank}&amount=${amount}&template=compact&download=false`;
+            // qrUrl += `&des=Chuyen tien cho ${to}`;
+
+            $('#qrCodeImage').attr('src', qrUrl);
+            $('#qrCodeModal').modal('show');
+        });
+
+        // Xử lý khi bấm nút tải ảnh QR
+        $('#downloadQrBtn').click(function () {
+            const qrUrl = $('#qrCodeImage').attr('src');
+            const link = document.createElement('a');
+            link.href = qrUrl;
+            link.download = 'qr-code.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
 
         // Format số tiền thành định dạng VND
         function formatCurrency(amount) {
@@ -352,6 +598,7 @@
                 title: $('#eventTitle').text(),
                 members: members,
                 expenses: expenses,
+                bankInfo: bankInfo,
                 createdAt: Date.now(),
                 lastUpdated: Date.now()
             };
@@ -359,8 +606,6 @@
             let savedEvents = JSON.parse(localStorage.getItem('billSplitEvents')) || {};
             savedEvents[currentEventId] = eventData;
             localStorage.setItem('billSplitEvents', JSON.stringify(savedEvents));
-
-            // Lưu ID sự kiện hiện tại để tải lại khi refresh
             localStorage.setItem('currentEventId', currentEventId);
 
             if (showAlert) {
@@ -703,6 +948,11 @@
             <div class="transfer-item">
                 <i class="fas fa-exchange-alt me-2"></i>
                 <strong>${transfer.from}</strong> chuyển <strong>${formatCurrency(transfer.amount)}</strong> cho <strong>${transfer.to}</strong>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-primary generate-qr-btn" data-from="${transfer.from}" data-to="${transfer.to}" data-amount="${transfer.amount}">
+                        <i class="fas fa-qrcode me-1"></i> Bấm vào đây để tạo QR chuyển tiền
+                    </button>
+                </div>
             </div>
             `);
                 });
@@ -1014,7 +1264,8 @@
             const eventData = {
                 title: $('#eventTitle').text(),
                 members: members,
-                expenses: expenses
+                expenses: expenses,
+                bankInfo: bankInfo // Thêm thông tin ngân hàng vào dữ liệu chia sẻ
             };
 
             // Chuyển dữ liệu thành chuỗi base64
@@ -1080,10 +1331,12 @@
                     $('#eventTitle').text(eventData.title || 'Sự Kiện Được Chia Sẻ');
                     members = eventData.members || [];
                     expenses = eventData.expenses || [];
+                    bankInfo = eventData.bankInfo || {};
 
                     // Render lại giao diện
                     renderMembers();
                     renderExpenses();
+                    renderBankInfoTable(); // Thêm dòng này để hiển thị thông tin ngân hàng
 
                     // Thông báo
                     showToast('Đã tải dữ liệu sự kiện từ đường link chia sẻ!', 'success');
