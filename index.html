@@ -98,7 +98,30 @@
         .event-item:hover {
             background-color: #f8f9fa;
         }
+        .select2-container--default .select2-selection--single .select2-selection__rendered img {
+            height: 16px;
+            width: auto;
+            margin-right: 10px;
+            vertical-align: middle;
+            object-fit: contain;
+        }
+        .select2-results__option img {
+            height: 16px;
+            width: auto;
+            margin-right: 10px;
+            vertical-align: middle;
+            object-fit: contain;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            display: flex;
+            align-items: center;
+        }
+        .select2-results__option {
+            display: flex !important;
+            align-items: center;
+        }
     </style>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -357,7 +380,7 @@
 
 <!-- Modal Thêm/Sửa Thông Tin Ngân Hàng -->
 <div class="modal fade" id="editBankInfoModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Thêm/Sửa Thông Tin Ngân Hàng</h5>
@@ -424,6 +447,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function () {
         let currentEventId = localStorage.getItem('currentEventId') || 'event_' + Date.now();
@@ -441,7 +465,19 @@
         $.getJSON('banks.json', function (data) {
             const banks = data.data.filter(bank => bank.supported);
             banks.forEach(bank => {
-                $('#bankInfoBank').append(`<option value="${bank.code}">${bank.short_name} - ${bank.name}</option>`);
+                $('#bankInfoBank').append(
+                    `<option value="${bank.code}" data-image="https://qr.sepay.vn/assets/img/banklogo/${bank.code}.png">
+                        ${bank.short_name} - ${bank.name}
+                    </option>`
+                );
+            });
+
+            // Khởi tạo select2 sau khi append xong
+            $('#bankInfoBank').select2({
+                dropdownParent: $('#editBankInfoModal'), // Đảm bảo dropdown hiển thị đúng trong modal
+                templateResult: formatBankOption,
+                templateSelection: formatBankOption,
+                width: '100%'
             });
         });
 
@@ -460,12 +496,14 @@
 
             members.forEach(member => {
                 const info = bankInfo[member] || {};
-                const bankName = $('#bankInfoBank option[value="' + (info.bank || '') + '"]').text() || '';
+                const bankOption = $('#bankInfoBank option[value="' + (info.bank || '') + '"]');
+                const bankName = bankOption.text() || '';
+                const bankLogo = bankOption.data('image') ? `<img src="${bankOption.data('image')}" style="height:16px;width:auto;vertical-align:middle;margin-right:8px;"/>` : '';
 
                 $('#bankInfoTableBody').append(`
                     <tr>
                         <td>${member}</td>
-                        <td>${bankName}</td>
+                        <td>${bankLogo}${bankName}</td>
                         <td>${info.account || ''}</td>
                         <td>
                             <button class="btn btn-sm btn-outline-primary edit-bank-info" data-member="${member}">
@@ -990,6 +1028,7 @@
             }
         });
 
+
         // Xử lý khi bấm nút "Chọn tất cả"
         $('#selectAllBeneficiaries').click(function () {
             const allChecked = $('.beneficiary-checkbox').length === $('.beneficiary-checkbox:checked').length;
@@ -1349,6 +1388,26 @@
                 }
             }
         }
+
+        // Hàm hiển thị option ngân hàng có logo
+        function formatBankOption(option) {
+            if (!option.id) return option.text; // placeholder không có logo
+            var img = $(option.element).data('image');
+            if (img) {
+                return $(`<span><img src="${img}" /> ${option.text}</span>`);
+            }
+            return option.text;
+        }
+
+        // Khi mở modal Thêm/Sửa Thông Tin Ngân Hàng thì reset lại select2 để tránh lỗi
+        $('#editBankInfoModal').on('shown.bs.modal', function () {
+            $('#bankInfoBank').select2({
+                dropdownParent: $('#editBankInfoModal'),
+                templateResult: formatBankOption,
+                templateSelection: formatBankOption,
+                width: '100%'
+            });
+        });
     });
 </script>
 </body>
